@@ -91,9 +91,9 @@ def _sanitize_kwargs_for_tagging(tag_names, kwargs=None):
 
 
 @dataclass
-class AxolotlTrainingArguments(TrainingArguments):
+class AxolotlTrainingMixins:
     """
-    Extend the base TrainingArguments for axolotl helpers
+    Mixin class for the Axolotl training args.
     """
 
     model_type: Optional[str] = field(
@@ -225,6 +225,27 @@ class AxolotlTrainingArguments(TrainingArguments):
         default=None,
         metadata={"help": "whether to use sequential sampling for curriculum learning"},
     )
+
+
+@dataclass
+class AxolotlTrainingArguments(TrainingArguments, AxolotlTrainingMixins):
+    """
+    Training arguments for Causal trainer
+    """
+
+
+@dataclass
+class AxolotlORPOConfig(ORPOConfig, AxolotlTrainingMixins):
+    """
+    ORPO config for ORPO training
+    """
+
+
+@dataclass
+class AxolotlKTOConfig(KTOConfig, AxolotlTrainingMixins):
+    """
+    KTO config for KTO training
+    """
 
 
 class AxolotlTrainer(Trainer):
@@ -1583,14 +1604,14 @@ class HFRLTrainerBuilder(TrainerBuilderBase):
 
         training_args_cls = AxolotlTrainingArguments
         if self.cfg.rl == "orpo":
-            training_args_cls = ORPOConfig
+            training_args_cls = AxolotlORPOConfig
             training_args_kwargs["dataset_num_proc"] = self.cfg.dataset_processes
             training_args_kwargs["max_length"] = self.cfg.sequence_len
             if self.cfg.max_prompt_len:
                 training_args_kwargs["max_prompt_length"] = self.cfg.max_prompt_len
 
         if self.cfg.rl == "kto":
-            training_args_cls = KTOConfig
+            training_args_cls = AxolotlKTOConfig
 
             training_args_kwargs["beta"] = self.cfg.rl_beta or 0.1
             training_args_kwargs["desirable_weight"] = (
@@ -1605,7 +1626,7 @@ class HFRLTrainerBuilder(TrainerBuilderBase):
             if self.cfg.max_prompt_len:
                 training_args_kwargs["max_prompt_length"] = self.cfg.max_prompt_len
 
-        training_args = training_args_cls(
+        training_args = training_args_cls(  # pylint: disable=unexpected-keyword-arg
             per_device_train_batch_size=self.cfg.micro_batch_size,
             max_steps=self.cfg.max_steps or total_num_steps,
             gradient_accumulation_steps=self.cfg.gradient_accumulation_steps,

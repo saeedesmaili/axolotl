@@ -229,7 +229,7 @@ class AxolotlTrainingMixins:
 
 
 @dataclass
-class AxolotlTrainingArguments(TrainingArguments, AxolotlTrainingMixins):
+class AxolotlTrainingArguments(TrainingArguments):
     """
     Training arguments for Causal trainer
 
